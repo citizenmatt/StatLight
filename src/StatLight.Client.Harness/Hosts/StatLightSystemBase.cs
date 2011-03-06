@@ -26,7 +26,9 @@ namespace StatLight.Client.Harness.Hosts
             {
                 Assembly[] list;
 #if WINDOWS_PHONE
-                throw new NotImplementedException();
+                Assembly.Load("StatLight.Client.Harness.MSTest, Culture=neutral, PublicKeyToken=9f7f221db79a30d0");
+                var runnerHost = Type.GetType("StatLight.Client.Harness.Hosts.MSTest.MSTestRunnerHost");
+                return (T)Activator.CreateInstance(runnerHost);
 #else
                 list = System.Windows.Deployment.Current.Parts.Select(
                             ap => System.Windows.Application.GetResourceStream(new Uri(ap.Source, UriKind.Relative))).Select(
