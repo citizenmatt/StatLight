@@ -21,14 +21,28 @@ namespace StatLight.Client.Harness.Hosts
 
         protected static T LocateService<T>() where T : class
         {
+            MessageBox.Show("HI");
             T service = null;
             try
             {
                 Assembly[] list;
 #if WINDOWS_PHONE
-                Assembly.Load("StatLight.Client.Harness.MSTest, Culture=neutral, PublicKeyToken=9f7f221db79a30d0");
-                var runnerHost = Type.GetType("StatLight.Client.Harness.Hosts.MSTest.MSTestRunnerHost");
-                return (T)Activator.CreateInstance(runnerHost);
+                Assembly.Load("StatLight.Client.Harness.Phone");
+                //Assembly.Load("StatLight.Client.Harness.MSTest");
+                var runnerHostType = Type.GetType("StatLight.Client.Harness.Hosts.MSTest.MSTestRunnerHost");
+                MessageBox.Show(runnerHostType.ToString());
+                //var constructorInfos = runnerHost.GetConstructor(Type.EmptyTypes);
+                //MessageBox.Show((constructorInfos != null).ToString());
+                //var obj = constructorInfos.Invoke(new object[0]);
+
+                var parameterlessCtor = (from c in runnerHostType.GetConstructors(
+  BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                                         where c.GetParameters().Length == 0
+                                         select c).FirstOrDefault();
+                if (parameterlessCtor != null)
+                    return (T)parameterlessCtor.Invoke(null);
+                throw new NotImplementedException();
+
 #else
                 list = System.Windows.Deployment.Current.Parts.Select(
                             ap => System.Windows.Application.GetResourceStream(new Uri(ap.Source, UriKind.Relative))).Select(
@@ -36,7 +50,7 @@ namespace StatLight.Client.Harness.Hosts
 #endif
                 var type = list
                     .SelectMany(s => s.GetTypes())
-                    .Where(w=>w != typeof(T))
+                    .Where(w => w != typeof(T))
                     .Where(w => typeof(T).IsAssignableFrom(w))
                     .ToArray();
 
