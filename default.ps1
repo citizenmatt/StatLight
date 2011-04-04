@@ -892,6 +892,7 @@ Task package-release -depends clean-release {
 			'StatLight.Client.For.November2009.xap'
 			'StatLight.Client.For.October2009.xap'
 			'StatLight.Client.For.UnitDrivenDecember2009.xap'
+			'StatLight.Client.For.MSTestMay2010Phone.xap'
 			'StatLight.Core.dll'
 			'StatLight.EULA.txt'
 			'StatLight.exe'
@@ -906,6 +907,7 @@ Task package-release -depends clean-release {
 		#'StatLight.Client.Harness.dll'
 		'StatLight.IntegrationTests.dll'
 		'StatLight.IntegrationTests.Silverlight.MSTest.dll'
+		'StatLight.Core.Phone.dll'
 	)
 
 	$filesToCopyFromBuild = @(

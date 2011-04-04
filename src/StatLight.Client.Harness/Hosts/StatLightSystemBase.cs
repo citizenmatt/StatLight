@@ -21,28 +21,14 @@ namespace StatLight.Client.Harness.Hosts
 
         protected static T LocateService<T>() where T : class
         {
-            MessageBox.Show("HI");
             T service = null;
             try
             {
                 Assembly[] list;
 #if WINDOWS_PHONE
-                Assembly.Load("StatLight.Client.Harness.Phone");
-                //Assembly.Load("StatLight.Client.Harness.MSTest");
-                var runnerHostType = Type.GetType("StatLight.Client.Harness.Hosts.MSTest.MSTestRunnerHost");
-                MessageBox.Show(runnerHostType.ToString());
-                //var constructorInfos = runnerHost.GetConstructor(Type.EmptyTypes);
-                //MessageBox.Show((constructorInfos != null).ToString());
-                //var obj = constructorInfos.Invoke(new object[0]);
-
-                var parameterlessCtor = (from c in runnerHostType.GetConstructors(
-  BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                                         where c.GetParameters().Length == 0
-                                         select c).FirstOrDefault();
-                if (parameterlessCtor != null)
-                    return (T)parameterlessCtor.Invoke(null);
-                throw new NotImplementedException();
-
+                if(typeof(T) == typeof(ITestRunnerHost))
+                    return (new StatLight.Client.Harness.Hosts.MSTest.MSTestRunnerHost() as T);
+                throw new NotSupportedException("type({0}) is not supported.".FormatWith(typeof(T).FullName));
 #else
                 list = System.Windows.Deployment.Current.Parts.Select(
                             ap => System.Windows.Application.GetResourceStream(new Uri(ap.Source, UriKind.Relative))).Select(

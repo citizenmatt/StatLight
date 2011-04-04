@@ -4,6 +4,7 @@
     {
         Undefined,
         MSTest, // Default
+        MSTestPhone,
         XUnit,
         NUnit,
         UnitDriven,
