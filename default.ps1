@@ -915,7 +915,6 @@ Task package-release -depends clean-release {
 		#'StatLight.Client.Harness.dll'
 		'StatLight.IntegrationTests.dll'
 		'StatLight.IntegrationTests.Silverlight.MSTest.dll'
-		'StatLight.Core.Phone.dll'
 	)
 
 	$filesToCopyFromBuild = @(
