@@ -1,4 +1,5 @@
 ﻿
+using StatLight.Core.Events.Aggregation;
 using StatLight.Core.Properties;
 
 namespace StatLight.Core.Reporting.Providers.TeamCity
@@ -8,7 +9,10 @@ namespace StatLight.Core.Reporting.Providers.TeamCity
     using StatLight.Core.Reporting;
     using StatLight.Core.Events;
 
-    public class TeamCityTestResultHandler : ITestingReportEvents
+    public class TeamCityTestResultHandler : ITestingReportEvents,
+        IListener<TestExecutionClassBeginClientEvent>,
+        IListener<TestExecutionClassCompletedClientEvent>,
+        IListener<TestExecutionMethodBeginClientEvent>
     {
         private readonly ICommandWriter _messageWriter;
         private readonly string _assemblyName;
@@ -21,19 +25,12 @@ namespace StatLight.Core.Reporting.Providers.TeamCity
 
         public void PublishStart()
         {
-            _messageWriter.Write(
-                CommandFactory.TestSuiteStarted(_assemblyName));
+            _messageWriter.Write(CommandFactory.TestSuiteStarted(_assemblyName));
         }
 
         public void PublishStop()
         {
-            _messageWriter.Write(
-                CommandFactory.TestSuiteFinished(_assemblyName));
-        }
-
-        private void WrapTestWithStartAndEnd(Command command, string name, long durationMilliseconds)
-        {
-            WrapTestWithStartAndEnd(() => _messageWriter.Write(command), name, durationMilliseconds);
+            _messageWriter.Write(CommandFactory.TestSuiteFinished(_assemblyName));
         }
 
         private void WrapTestWithStartAndEnd(Action action, string name, long durationMilliseconds)
@@ -76,41 +73,42 @@ namespace StatLight.Core.Reporting.Providers.TeamCity
             WriteServerEventFailure("BrowserHostCommunicationTimeoutServerEvent", writeMessage);
         }
 
+        public void Handle(TestExecutionClassBeginClientEvent message)
+        {
+            _messageWriter.Write(CommandFactory.TestSuiteStarted(message.NamespaceName + "." + message.ClassName));
+        }
+
+        public void Handle(TestExecutionClassCompletedClientEvent message)
+        {
+            _messageWriter.Write(CommandFactory.TestSuiteFinished(message.NamespaceName + "." + message.ClassName));
+        }
+
+        public void Handle(TestExecutionMethodBeginClientEvent message)
+        {
+            _messageWriter.Write(CommandFactory.TestStarted(message.MethodName));
+        }
+
         public void Handle(TestCaseResult message)
         {
             if (message == null) throw new ArgumentNullException("message");
-            var name = message.FullMethodName();
-            var durationMilliseconds = message.TimeToComplete.Milliseconds;
+            var name = message.MethodName;
+            var durationMilliseconds = message.TimeToComplete.TotalMilliseconds;
 
             switch (message.ResultType)
             {
                 case ResultType.Ignored:
-                    WrapTestWithStartAndEnd(CommandFactory.TestIgnored(message.MethodName, string.Empty), message.MethodName, 0);
+                    _messageWriter.Write(CommandFactory.TestIgnored(name, string.Empty));
                     break;
+
                 case ResultType.Passed:
-
-                    WrapTestWithStartAndEnd(() =>
-                    {
-
-                    }, name, durationMilliseconds);
                     break;
+
                 case ResultType.Failed:
-                    WrapTestWithStartAndEnd(() => _messageWriter.Write(
-                        CommandFactory.TestFailed(
-                            name,
-                            message.ExceptionInfo.FullMessage,
-                            message.ExceptionInfo.FullMessage)),
-                        name,
-                        durationMilliseconds);
+                    _messageWriter.Write(CommandFactory.TestFailed(name, message.ExceptionInfo.FullMessage, message.ExceptionInfo.FullMessage));
                     break;
+
                 case ResultType.SystemGeneratedFailure:
-                    WrapTestWithStartAndEnd(() => _messageWriter.Write(
-                        CommandFactory.TestFailed(
-                            name,
-                            "StatLight generated test failure",
-                            message.OtherInfo)),
-                        name,
-                        durationMilliseconds);
+                    _messageWriter.Write(CommandFactory.TestFailed(name, "StatLight generated test failure", message.OtherInfo));
                     break;
 
                 default:
@@ -119,6 +117,7 @@ namespace StatLight.Core.Reporting.Providers.TeamCity
                     break;
             }
 
+            _messageWriter.Write(CommandFactory.TestFinished(name, durationMilliseconds));
         }
 
         public void Handle(FatalSilverlightExceptionServerEvent message)
